@@ -10,9 +10,23 @@ class Temp extends A implements B{
     Temp(int a, int b){
 
     }
+    @Override
+    public int getAaa(){
+        return 1;
+    }
+    @Override
+    public int getBba(){
+        return 1;
+    }
 }
 
 class A{
+    public int getAaa(){
+        return 1;
+    }
+    public int getBba(){
+        return 1;
+    }
 }
 
 interface B{

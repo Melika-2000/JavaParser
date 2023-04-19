@@ -3,10 +3,7 @@ package com.company;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.ConstructorDeclaration;
-import com.github.javaparser.ast.body.FieldDeclaration;
-import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.SimpleName;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 
@@ -20,19 +17,22 @@ public class Main {
 
     public static void main(String[] args) throws FileNotFoundException {
 
-        String projectP1 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\4 - Netbeans v1.0.x\\src\\org\\openide\\TopManager.java";
+       // String projectP1 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\4 - Netbeans v1.0.x\\src\\org\\openide\\TopManager.java";
+        String projectP1 = "C:\\Users\\MelikaZ\\IdeaProjects\\OO_Proj\\src\\com\\company\\Temp.java";
         ArrayList<File> classFile = getClassesAsFiles(projectP1);
         CompilationUnit cu = StaticJavaParser.parse(classFile.get(0));
         String className = getClassName(classFile.get(0));
         ClassOrInterfaceDeclaration classDeclaration = cu.getClassByName(className).get();
 
-        //
+        //project name?
         String packageName = cu.getPackageDeclaration().get().getNameAsString();
         String classType = getType(classDeclaration);
         String classVisibility = getVisibility(classDeclaration);
         List<SimpleName> children = getChildren(cu, className);
         List<String> fields = getFields(classDeclaration);
         String constructors = getConstructors(classDeclaration);
+        String methods = getMethods(classDeclaration);
+        List<String> overrideMethods = getOverrideMethods(classDeclaration);
 
         boolean isStatic = classDeclaration.isStatic();
         boolean isAbstract = classDeclaration.isAbstract();
@@ -41,6 +41,11 @@ public class Main {
 
         NodeList<ClassOrInterfaceType> extendedTypes = classDeclaration.getExtendedTypes();
         NodeList<ClassOrInterfaceType> implementedTypes = classDeclaration.getImplementedTypes();
+
+        ArrayList<String> staticMethods = new ArrayList();
+        ArrayList<String> abstractMethods = new ArrayList();
+        ArrayList<String> finalMethods = new ArrayList<>();
+        findMethodTypes(staticMethods, abstractMethods, finalMethods, classDeclaration);
 
         System.out.println("Class Name: " + className);
         System.out.println("Package Name: " + packageName);
@@ -53,8 +58,14 @@ public class Main {
         System.out.println("isFinal: " + isFinal);
         System.out.println("isInterface: " + isInterface);
         System.out.println("children: " + children);
-        System.out.println("fields: " + fields);
         System.out.println("constructors: " + constructors);
+        System.out.println("fields: " + fields);
+        System.out.println("Methods: \n" + methods);
+        System.out.println("overrideMethods: " + overrideMethods);
+        System.out.println("static methods: " + staticMethods);
+        System.out.println("final methods: " + finalMethods);
+        System.out.println("abstract methods: " + abstractMethods);
+
 
     }
 
@@ -140,6 +151,51 @@ public class Main {
     public static String getClassName(File classFile){
         return classFile.getName().replace(".java", "").replace('$', '.');
     }
+
+    public static String getMethods(ClassOrInterfaceDeclaration classDeclaration){
+        String result = "";
+        List<MethodDeclaration> methods = classDeclaration.getMethods();
+        for(MethodDeclaration method : methods){
+            result += "Method name: " + method.getNameAsString() +
+                    ", Parameters: " + method.getParameters() +
+                    ", Return Type: " + method.getType() + "\n";
+        }
+        return result;
+    }
+
+    public static void findMethodTypes(
+            ArrayList<String> staticMethods,
+            ArrayList<String> abstractMethods,
+            ArrayList<String> finalMethods,
+            ClassOrInterfaceDeclaration classDeclaration
+    ){
+        List<MethodDeclaration> methods = classDeclaration.getMethods();
+        for(MethodDeclaration method : methods){
+            if (method.isAbstract()){
+                abstractMethods.add(method.getNameAsString());
+            }
+            else if (method.isFinal()){
+                finalMethods.add(method.getNameAsString());
+            }
+            else if (method.isStatic()){
+                staticMethods.add(method.getNameAsString());
+            }
+        }
+    }
+
+    public static List<String> getOverrideMethods(ClassOrInterfaceDeclaration classDeclaration) {
+        List<String> overrideMethods = new ArrayList<>();
+
+        for (MethodDeclaration method : classDeclaration.getMethods()) {
+            if(method.getAnnotationByName("Override").isPresent()){
+                String result = "override method: " + method.getName();
+                result += " -> parent class: " + classDeclaration.getExtendedTypes().toString();
+                overrideMethods.add(result);
+            }
+        }
+        return overrideMethods;
+    }
+
 }
 
 
