@@ -30,7 +30,7 @@ public class Main {
         String classVisibility = getVisibility(classDeclaration);
         List<SimpleName> children = getChildren(cu, className);
         List<String> fields = getFields(classDeclaration);
-        String constructors = getConstructors(classDeclaration);
+        List<String> constructors = getConstructors(classDeclaration);
         String methods = getMethods(classDeclaration);
         List<String> overrideMethods = getOverrideMethods(classDeclaration);
 
@@ -101,21 +101,13 @@ public class Main {
         return childClasses;
     }
 
-    public static String getConstructors(ClassOrInterfaceDeclaration classDeclaration){
-        String result = "";
+    public static ArrayList<String> getConstructors(ClassOrInterfaceDeclaration classDeclaration){
+        ArrayList<String> constructorsInfo = new ArrayList<>();
         List<ConstructorDeclaration> constructors = classDeclaration.getConstructors();
         for (ConstructorDeclaration constructor : constructors) {
-            String name = constructor.getName().asString();
-            NodeList<com.github.javaparser.ast.body.Parameter> parameters = constructor.getParameters();
-            result += "[" + name + " , Parameters: ";
-            for (Parameter parameter : parameters) {
-                String paramName = parameter.getName().asString();
-                String paramType = parameter.getType().asString();
-                result += paramType + " " + paramName + " , ";
-            }
-            result += "]";
+            constructorsInfo.add(constructor.getDeclarationAsString());
         }
-        return result;
+        return constructorsInfo;
     }
 
     public static List<String> getFields(ClassOrInterfaceDeclaration classDeclaration) {

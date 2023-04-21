@@ -4,10 +4,10 @@ class Temp extends A implements B{
     int aaa;
     String bbb;
     float ssss;
-    Temp(){
+    public Temp(){
 
     }
-    Temp(int a, int b){
+    private Temp(int a, int b){
 
     }
     @Override
