@@ -1,124 +1,76 @@
 package com.company;
 
-import com.github.javaparser.StaticJavaParser;
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.body.*;
-import com.github.javaparser.ast.expr.SimpleName;
-import com.github.javaparser.ast.type.ClassOrInterfaceType;
-
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Stack;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.io.FileOutputStream;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.io.IOException;
+import java.util.*;
+
 
 public class Main {
 
-    public static void main(String[] args) throws FileNotFoundException {
+    public static void main(String[] args) {
 
-       // String projectP1 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\4 - Netbeans v1.0.x\\src\\org\\openide\\TopManager.java";
-        String projectP1 = "C:\\Users\\MelikaZ\\IdeaProjects\\OO_Proj\\src\\com\\company\\Temp.java";
-        ArrayList<File> classFile = getClassesAsFiles(projectP1);
-        CompilationUnit cu = StaticJavaParser.parse(classFile.get(0));
-        String className = getClassName(classFile.get(0));
-        ClassOrInterfaceDeclaration classDeclaration = cu.getClassByName(className).get();
+        String project1 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\4 - Netbeans v1.0.x";
+        String project2 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\1 - QuickUML 2001";
+        String project3 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\2 - Lexi v0.1.1 alpha";
+        String project4 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\3 - JRefactory v2.6.24";
+        String project5 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\5 - JUnit v3.7";
+        String project6 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\8 - MapperXML v1.9.7";
+        String project7 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\10 - Nutch v0.4";
+        String project8 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\11 - PMD v1.8";
+        String project9 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\JHotDraw v5.1";
 
-        //project name?
-        String packageName = cu.getPackageDeclaration().get().getNameAsString();
-        String classType = getType(classDeclaration);
-        String classVisibility = getVisibility(classDeclaration);
-        List<SimpleName> children = getChildren(cu, className);
-        List<String> fields = getFields(classDeclaration);
-        List<String> constructors = getConstructors(classDeclaration);
-        String methods = getMethods(classDeclaration);
-        List<String> overrideMethods = getOverrideMethods(classDeclaration);
-
-        boolean isStatic = classDeclaration.isStatic();
-        boolean isAbstract = classDeclaration.isAbstract();
-        boolean isFinal = classDeclaration.isFinal();
-        boolean isInterface = classDeclaration.isInterface();
-
-        NodeList<ClassOrInterfaceType> extendedTypes = classDeclaration.getExtendedTypes();
-        NodeList<ClassOrInterfaceType> implementedTypes = classDeclaration.getImplementedTypes();
-
-        ArrayList<String> staticMethods = new ArrayList();
-        ArrayList<String> abstractMethods = new ArrayList();
-        ArrayList<String> finalMethods = new ArrayList<>();
-        findMethodTypes(staticMethods, abstractMethods, finalMethods, classDeclaration);
-
-        System.out.println("Class Name: " + className);
-        System.out.println("Package Name: " + packageName);
-        System.out.println("classType: " + classType);
-        System.out.println("classVisibility: " + classVisibility);
-        System.out.println("extendedTypes: " + extendedTypes);
-        System.out.println("implementedTypes: " + implementedTypes);
-        System.out.println("isStatic: " + isStatic);
-        System.out.println("isAbstract: " + isAbstract);
-        System.out.println("isFinal: " + isFinal);
-        System.out.println("isInterface: " + isInterface);
-        System.out.println("children: " + children);
-        System.out.println("constructors: " + constructors);
-        System.out.println("fields: " + fields);
-        System.out.println("Methods: \n" + methods);
-        System.out.println("overrideMethods: " + overrideMethods);
-        System.out.println("static methods: " + staticMethods);
-        System.out.println("final methods: " + finalMethods);
-        System.out.println("abstract methods: " + abstractMethods);
-
+        ArrayList<File> classFiles = getClassesAsFiles(project1);
+        writeToExcel(classFiles);
 
     }
 
-    public static String getVisibility(ClassOrInterfaceDeclaration classD){
-        if (classD.isPublic()) {
-            return "public";
-        } else if(classD.isProtected()) {
-            return "protected";
-        } else if(classD.isPrivate()) {
-            return "private";
-        }
-        return "package-private";
-    }
+    private static void writeToExcel(ArrayList<File> classFiles) {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        XSSFSheet spreadsheet = workbook.createSheet(" Classes Info ");
+        XSSFRow row;
+        Map<Integer, Object[]> classesInfo = new TreeMap<>();
+        classesInfo.put(1,createLabels().toArray());
 
-    public static String getType(ClassOrInterfaceDeclaration classD){
-        if (classD.isInterface()) {
-            return "Interface";
-        } else if(classD.isNestedType()){
-            return "Nested";
-        }
-        return "Ordinary";
-    }
-
-    public static List<SimpleName> getChildren(CompilationUnit cu, String className){
-        ClassOrInterfaceDeclaration currentClass = cu.getClassByName(className).get();
-        List<SimpleName> childClasses = new ArrayList<>();
-        cu.findAll(ClassOrInterfaceDeclaration.class).forEach(classDeclaration -> {
-            if (classDeclaration.getExtendedTypes().stream()
-                    .anyMatch(ext -> ext.getNameAsString().equals(currentClass.getNameAsString()))) {
-                childClasses.add(classDeclaration.getName());
+        for(int i=2; i<classFiles.size(); i++){
+            try {
+                ClassInfo clazz = new ClassInfo(classFiles.get(i));
+                classesInfo.put(i, clazz.getClassInfo().toArray());
             }
-        });
-        return childClasses;
-    }
-
-    public static ArrayList<String> getConstructors(ClassOrInterfaceDeclaration classDeclaration){
-        ArrayList<String> constructorsInfo = new ArrayList<>();
-        List<ConstructorDeclaration> constructors = classDeclaration.getConstructors();
-        for (ConstructorDeclaration constructor : constructors) {
-            constructorsInfo.add(constructor.getDeclarationAsString());
+            catch (Exception e){
+            }
         }
-        return constructorsInfo;
-    }
 
-    public static List<String> getFields(ClassOrInterfaceDeclaration classDeclaration) {
-        List<String> fieldList = new ArrayList<>();
-        List<FieldDeclaration> fields = classDeclaration.getFields();
-        for (FieldDeclaration field : fields) {
-            String type = field.getCommonType().toString();
-            String name = field.getVariable(0).getNameAsString();
-            fieldList.add(type + " " + name);
+        Set<Integer> keyId = classesInfo.keySet();
+        int rowId = 0;
+
+        for (Integer key : keyId) {
+            row = spreadsheet.createRow(rowId++);
+            Object[] objectArr = classesInfo.get(key);
+            int cellId = 0;
+            for (Object obj : objectArr) {
+                Cell cell = row.createCell(cellId++);
+                if (obj instanceof Integer) {
+                    cell.setCellValue((Integer) obj);
+                } else {
+                    cell.setCellValue(String.valueOf(obj));
+                }
+            }
         }
-        return fieldList;
+        try {
+            FileOutputStream out = new FileOutputStream(new File("Project1.xlsx"));
+            workbook.write(out);
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static ArrayList<File> getClassesAsFiles(String path){
@@ -140,58 +92,15 @@ public class Main {
         return files;
     }
 
-    public static String getClassName(File classFile){
-        return classFile.getName().replace(".java", "").replace('$', '.');
-    }
-
-    public static String getMethods(ClassOrInterfaceDeclaration classDeclaration){
-        String result = "";
-        List<MethodDeclaration> methods = classDeclaration.getMethods();
-        for(MethodDeclaration method : methods){
-            result += "Method name: " + method.getNameAsString() +
-                    ", Parameters: " + method.getParameters() +
-                    ", Return Type: " + method.getType() + "\n";
-        }
-        return result;
-    }
-
-    public static void findMethodTypes(
-            ArrayList<String> staticMethods,
-            ArrayList<String> abstractMethods,
-            ArrayList<String> finalMethods,
-            ClassOrInterfaceDeclaration classDeclaration
-    ){
-        List<MethodDeclaration> methods = classDeclaration.getMethods();
-        for(MethodDeclaration method : methods){
-            if (method.isAbstract()){
-                abstractMethods.add(method.getNameAsString());
-            }
-            else if (method.isFinal()){
-                finalMethods.add(method.getNameAsString());
-            }
-            else if (method.isStatic()){
-                staticMethods.add(method.getNameAsString());
-            }
-        }
-    }
-
-    public static List<String> getOverrideMethods(ClassOrInterfaceDeclaration classDeclaration) {
-        List<String> overrideMethods = new ArrayList<>();
-
-        for (MethodDeclaration method : classDeclaration.getMethods()) {
-            if(method.getAnnotationByName("Override").isPresent()){
-                String result = "override method: " + method.getName();
-                result += " -> parent class: " + classDeclaration.getExtendedTypes().toString();
-                overrideMethods.add(result);
-            }
-        }
-        return overrideMethods;
+    public static List<String> createLabels(){
+        List<String> list = Arrays.asList("Project Name", "Package_Name","Class_Name", "Class_Type", "Class_Visibility",
+                "Class_is_Abstract", "Class_is_Static", "Class_is_Final", "Class_Is_Interface", "Extends", "Implements",
+                "Children", "Constructor", "Fields", "Methods", "Override", "has_static_method", "has_final_method",
+                "Has_abstract_method");
+        return list;
     }
 
 }
-
-
-
 
 
 
