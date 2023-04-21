@@ -22,17 +22,17 @@ public class ClassInfo {
     String projectName;
     String className;
     String packageName;
-    String classType;
-    String classVisibility;
+    int classType;
+    int classVisibility;
     List<SimpleName> children;
     List<String> methods;
     List<String> fields;
     List<String> constructors;
     List<String> overrideMethods;
-    boolean isStatic;
-    boolean isAbstract;
-    boolean isFinal;
-    boolean isInterface;
+    int isStatic;
+    int isAbstract;
+    int isFinal;
+    int isInterface;
     NodeList<ClassOrInterfaceType> extendedTypes;
     NodeList<ClassOrInterfaceType> implementedTypes;
     ArrayList<String> staticMethods = new ArrayList();
@@ -52,10 +52,10 @@ public class ClassInfo {
         this.constructors = getConstructors(classDeclaration);
         this.methods = getMethods(classDeclaration);
         this.overrideMethods = getOverrideMethods(classDeclaration);
-        this.isStatic = classDeclaration.isStatic();
-        this.isAbstract = classDeclaration.isAbstract();
-        this.isFinal = classDeclaration.isFinal();
-        this.isInterface = classDeclaration.isInterface();
+        this.isStatic = (classDeclaration.isStatic())? 1 : 0;
+        this.isAbstract = (classDeclaration.isAbstract())? 1 : 0;
+        this.isFinal = (classDeclaration.isFinal())? 1 : 0;
+        this.isInterface = (classDeclaration.isInterface())? 1 : 0;
         this.extendedTypes = classDeclaration.getExtendedTypes();
         this.implementedTypes = classDeclaration.getImplementedTypes();
         findMethodTypes(staticMethods, abstractMethods, finalMethods, classDeclaration);
@@ -87,24 +87,20 @@ public class ClassInfo {
         return info;
     }
 
-    private String getVisibility(ClassOrInterfaceDeclaration classD){
-        if (classD.isPublic()) {
-            return "public";
-        } else if(classD.isProtected()) {
-            return "protected";
-        } else if(classD.isPrivate()) {
-            return "private";
-        }
-        return "package-private";
+    private int getVisibility(ClassOrInterfaceDeclaration classD){
+        if(classD.isProtected())
+            return 3;
+        else if(classD.isPrivate())
+            return 2;
+        return 1; //is public
     }
 
-    private String getType(ClassOrInterfaceDeclaration classD){
-        if (classD.isInterface()) {
-            return "Interface";
-        } else if(classD.isNestedType()){
-            return "Nested";
-        }
-        return "Ordinary";
+    private int getType(ClassOrInterfaceDeclaration classD){
+        if (classD.isInterface())
+            return 2;
+        else if(classD.isNestedType())
+            return 3;
+        return 1; //is ordinary
     }
 
     private String getProjectName(File classFile){
