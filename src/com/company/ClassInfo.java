@@ -7,6 +7,7 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.expr.SimpleName;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 
@@ -29,6 +30,7 @@ public class ClassInfo {
     List<String> fields;
     List<String> constructors;
     List<String> overrideMethods;
+    List<String> instantiations;
     int isStatic;
     int isAbstract;
     int isFinal;
@@ -58,6 +60,7 @@ public class ClassInfo {
         this.isInterface = (classDeclaration.isInterface())? 1 : 0;
         this.extendedTypes = classDeclaration.getExtendedTypes();
         this.implementedTypes = classDeclaration.getImplementedTypes();
+        this.instantiations = getInstantiations(cu);
         findMethodTypes(staticMethods, abstractMethods, finalMethods, classDeclaration);
     }
 
@@ -82,7 +85,8 @@ public class ClassInfo {
                         overrideMethods,
                         staticMethods,
                         finalMethods,
-                        abstractMethods
+                        abstractMethods,
+                        instantiations
                         ));
         return info;
     }
@@ -199,4 +203,16 @@ public class ClassInfo {
         }
         return overrideMethods;
     }
+
+    private List<String> getInstantiations(CompilationUnit cu){
+        List<String> insList = new ArrayList<>();
+        List<ObjectCreationExpr> instantiations = cu.findAll(ObjectCreationExpr.class);
+        for(ObjectCreationExpr ins : instantiations){
+            boolean classAlreadyAdded = insList.contains(ins.getTypeAsString());
+            if(!classAlreadyAdded)
+                insList.add(ins.getTypeAsString());
+        }
+        return insList;
+    }
+
 }

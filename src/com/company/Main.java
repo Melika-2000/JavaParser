@@ -68,7 +68,7 @@ public class Main {
             FileOutputStream out = new FileOutputStream(new File("Project1.xlsx"));
             workbook.write(out);
             out.close();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -96,7 +96,7 @@ public class Main {
         List<String> list = Arrays.asList("Project Name", "Package_Name","Class_Name", "Class_Type", "Class_Visibility",
                 "Class_is_Abstract", "Class_is_Static", "Class_is_Final", "Class_Is_Interface", "Extends", "Implements",
                 "Children", "Constructor", "Fields", "Methods", "Override", "has_static_method", "has_final_method",
-                "Has_abstract_method");
+                "Has_abstract_method", "Instantiations");
         return list;
     }
 
