@@ -25,43 +25,45 @@ public class ClassInfo {
     String packageName;
     int classType;
     int classVisibility;
+    int isStatic;
+    int isAbstract;
+    int isFinal;
+    int isInterface;
     List<SimpleName> children;
     List<String> methods;
     List<String> fields;
     List<String> constructors;
     List<String> overrideMethods;
     List<String> instantiations;
-    int isStatic;
-    int isAbstract;
-    int isFinal;
-    int isInterface;
     NodeList<ClassOrInterfaceType> extendedTypes;
     NodeList<ClassOrInterfaceType> implementedTypes;
     ArrayList<String> staticMethods = new ArrayList();
     ArrayList<String> abstractMethods = new ArrayList();
     ArrayList<String> finalMethods = new ArrayList<>();
+    ClassOrInterfaceDeclaration classDeclaration;
 
-    ClassInfo(File classFile) throws FileNotFoundException {
+    ClassInfo(File classFile, ClassOrInterfaceDeclaration clDeclaration) throws FileNotFoundException {
         CompilationUnit cu = StaticJavaParser.parse(classFile);
-        this.projectName = getProjectName(classFile);
-        this.className = getClassName(classFile);
-        ClassOrInterfaceDeclaration classDeclaration = cu.getClassByName(className).get();
-        this.packageName = cu.getPackageDeclaration().get().getNameAsString();
-        this.classType = getType(classDeclaration);
-        this.classVisibility = getVisibility(classDeclaration);
-        this.children = getChildren(cu, className);
-        this.fields = getFields(classDeclaration);
-        this.constructors = getConstructors(classDeclaration);
-        this.methods = getMethods(classDeclaration);
-        this.overrideMethods = getOverrideMethods(classDeclaration);
-        this.isStatic = (classDeclaration.isStatic())? 1 : 0;
-        this.isAbstract = (classDeclaration.isAbstract())? 1 : 0;
-        this.isFinal = (classDeclaration.isFinal())? 1 : 0;
-        this.isInterface = (classDeclaration.isInterface())? 1 : 0;
-        this.extendedTypes = classDeclaration.getExtendedTypes();
-        this.implementedTypes = classDeclaration.getImplementedTypes();
-        this.instantiations = getInstantiations(cu);
+        projectName = getProjectName(classFile);
+        className = clDeclaration.getNameAsString();
+        classDeclaration = clDeclaration;
+        packageName = getPackageName(cu);
+        classType = getType(classDeclaration);
+        classVisibility = getVisibility(classDeclaration);
+        children = getChildren(cu, classDeclaration);
+        fields = getFields(classDeclaration);
+        constructors = getConstructors(classDeclaration);
+        methods = getMethods(classDeclaration);
+        overrideMethods = getOverrideMethods(classDeclaration);
+        isStatic = (classDeclaration.isStatic())? 1 : 0;
+        isAbstract = (classDeclaration.isAbstract())? 1 : 0;
+        isFinal = (classDeclaration.isFinal())? 1 : 0;
+        isInterface = (classDeclaration.isInterface())? 1 : 0;
+        extendedTypes = classDeclaration.getExtendedTypes();
+        implementedTypes = classDeclaration.getImplementedTypes();
+        instantiations = getInstantiations(cu);
         findMethodTypes(staticMethods, abstractMethods, finalMethods, classDeclaration);
+
     }
 
     public ArrayList getClassInfo(){
@@ -90,7 +92,11 @@ public class ClassInfo {
                         ));
         return info;
     }
-
+    private String getPackageName(CompilationUnit cu){
+        if(cu.getPackageDeclaration().isEmpty())
+            return " ";
+        return cu.getPackageDeclaration().get().getNameAsString();
+    }
     private int getVisibility(ClassOrInterfaceDeclaration classD){
         if(classD.isProtected())
             return 3;
@@ -123,8 +129,7 @@ public class ClassInfo {
         return projectName;
     }
 
-    private List<SimpleName> getChildren(CompilationUnit cu, String className){
-        ClassOrInterfaceDeclaration currentClass = cu.getClassByName(className).get();
+    private List<SimpleName> getChildren(CompilationUnit cu, ClassOrInterfaceDeclaration currentClass){
         List<SimpleName> childClasses = new ArrayList<>();
         cu.findAll(ClassOrInterfaceDeclaration.class).forEach(classDeclaration -> {
             if (classDeclaration.getExtendedTypes().stream()
@@ -153,10 +158,6 @@ public class ClassInfo {
             fieldList.add(type + " " + name);
         }
         return fieldList;
-    }
-
-    private String getClassName(File classFile){
-        return classFile.getName().replace(".java", "").replace('$', '.');
     }
 
     private List<String> getMethods(ClassOrInterfaceDeclaration classDeclaration){
@@ -213,6 +214,83 @@ public class ClassInfo {
                 insList.add(ins.getTypeAsString());
         }
         return insList;
+    }
+
+    public ArrayList getRelationships(ArrayList<ClassInfo> classesInfo){
+        ArrayList allRelationships = new ArrayList();
+        ArrayList<String> associations = new ArrayList();
+        ArrayList<String> delegations = new ArrayList();
+        ArrayList<String> compositionAggregation = new ArrayList();
+        for(int i=0; i<classesInfo.size(); i++) {
+            try {
+                ClassInfo selectedClass = classesInfo.get(i);
+                boolean selectedClassIsNotThisClass = !this.className.equals(selectedClass.className);
+                if (selectedClassIsNotThisClass) {
+                    if (hasDelegationRelationship(selectedClass))
+                        delegations.add(selectedClass.className);
+                    else if (hasCompositionAggregation(selectedClass))
+                        compositionAggregation.add(selectedClass.className);
+                    else if (hasAssociationRelationship(selectedClass))
+                        associations.add(selectedClass.className);
+                }
+
+            } catch (Exception e){}
+        }
+        allRelationships.add(associations);
+        allRelationships.add(compositionAggregation);
+        allRelationships.add(delegations);
+        return allRelationships;
+    }
+
+    private boolean hasAssociationRelationship(ClassInfo selectedClass){
+        if(instantiations.contains(selectedClass.className) ||
+                selectedClass.instantiations.contains(this.className)) {
+            return true;
+        }
+        for(String field : fields) {
+            if (field.contains(selectedClass.className))
+                return true;
+        }
+        for(String field : selectedClass.fields) {
+            if (field.contains(this.className))
+                return true;
+        }
+        return false;
+    }
+
+    private boolean hasDelegationRelationship(ClassInfo selectedClass){   //////////ba this ya bi this?
+        for(String field : fields){
+            if(field.contains(selectedClass.className)){
+                for(String method : methods){
+                    for(String selectedClassMethod : selectedClass.methods){
+                        String selectedClassMethodName = extractMethodName(selectedClassMethod);
+                        if(method.contains(selectedClassMethodName))
+                            return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean hasCompositionAggregation(ClassInfo selectedClass){
+        List<ConstructorDeclaration> constructors = classDeclaration.getConstructors();
+        for (ConstructorDeclaration constructor : constructors) {
+            if(constructor.getBody().toString().contains(selectedClass.className))
+                return true;
+        }
+        List<ConstructorDeclaration> selectedClassConstructors = selectedClass.classDeclaration.getConstructors();
+        for (ConstructorDeclaration constructor : selectedClassConstructors) {
+            if(constructor.getBody().toString().contains(className))
+                return true;
+        }
+        return false;
+    }
+
+    private String extractMethodName(String methodInfo){
+        methodInfo = methodInfo.substring(methodInfo.indexOf(":") + 1);
+        String methodName = methodInfo.substring(0, methodInfo.indexOf("-"));
+        return methodName;
     }
 
 }
