@@ -25,28 +25,34 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
 
-        String project1 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\1 - QuickUML 2001";
-        String project2 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\2 - Lexi v0.1.1 alpha";
-        String project3 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\3 - JRefactory v2.6.24";
-        String project4 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\4 - Netbeans v1.0.x";
-        String project5 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\5 - JUnit v3.7";
-        String project6 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\8 - MapperXML v1.9.7";
-        String project7 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\10 - Nutch v0.4";
-        String project8 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\11 - PMD v1.8";
-        String project9 = "C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\JHotDraw v5.1";
+        ArrayList<String> projectsPath = new ArrayList<>();
+        projectsPath.add("C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\1 - QuickUML 2001");
+        projectsPath.add("C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\2 - Lexi v0.1.1 alpha");
+        projectsPath.add("C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\3 - JRefactory v2.6.24");
+        projectsPath.add("C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\4 - Netbeans v1.0.x");
+        projectsPath.add("C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\5 - JUnit v3.7");
+        projectsPath.add("C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\8 - MapperXML v1.9.7");
+        projectsPath.add("C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\10 - Nutch v0.4");
+        projectsPath.add("C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\11 - PMD v1.8");
+        projectsPath.add("C:\\Users\\MelikaZ\\Documents\\Term 8\\OO Programming\\project\\JHotDraw v5.1");
 
-        ArrayList<ClassInfo> classesInfo = getClassesAsClassInfo(project3);
-        writeToExcel(classesInfo);
-
+        for(int i=1; i<=projectsPath.size(); i++){
+            ArrayList<ClassInfo> classesInfo = getClassesAsClassInfo(projectsPath.get(i-1));
+            writeToExcel(classesInfo, i);
+        }
     }
 
 
-    private static void writeToExcel(ArrayList<ClassInfo> classesInfo) {
+    private static void writeToExcel(ArrayList<ClassInfo> classesInfo, int projectNumber) {
         XSSFWorkbook workbook = new XSSFWorkbook();
         XSSFSheet spreadsheet = workbook.createSheet(" Classes Info ");
         XSSFRow row;
         Map<Integer, Object[]> classInfoMap = new TreeMap<>();
         classInfoMap.put(1,createLabels().toArray());
+
+        for(ClassInfo clazz : classesInfo){
+            clazz.setChildren(classesInfo);
+        }
 
         for(int i=0; i<classesInfo.size(); i++){
             try {
@@ -68,16 +74,22 @@ public class Main {
             Object[] objectArr = classInfoMap.get(key);
             int cellId = 0;
             for (Object obj : objectArr) {
-                Cell cell = row.createCell(cellId++);
-                if (obj instanceof Integer) {
-                    cell.setCellValue((Integer) obj);
-                } else {
-                    cell.setCellValue(String.valueOf(obj));
+                try {
+
+                    Cell cell = row.createCell(cellId++);
+                    if (obj instanceof Integer) {
+                        cell.setCellValue((Integer) obj);
+                    } else {
+                        cell.setCellValue(String.valueOf(obj));
+                    }
+                }
+                catch (Exception e){
+
                 }
             }
         }
         try {
-            FileOutputStream out = new FileOutputStream(new File("Project5.xlsx"));
+            FileOutputStream out = new FileOutputStream(new File("Project_" + projectNumber + ".xlsx"));
             workbook.write(out);
             out.close();
         } catch (Exception e) {
@@ -94,12 +106,11 @@ public class Main {
                     try {
                         File classFile = new File(p.toString());
                         CompilationUnit cu = StaticJavaParser.parse(classFile);
-                        cu.findAll(ClassOrInterfaceDeclaration.class).forEach(cl ->
-                                {
-                                    try {
-                                        classesInfo.add(new ClassInfo(classFile,cl));
-                                    } catch (FileNotFoundException e) { }
-                                }
+                        cu.findAll(ClassOrInterfaceDeclaration.class).forEach(cl -> {
+                                try {
+                                    classesInfo.add(new ClassInfo(classFile,cl));
+                                } catch (FileNotFoundException e) { }
+                            }
                         );
                     } catch (Exception e) { }
                 });

@@ -8,7 +8,6 @@ import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
-import com.github.javaparser.ast.expr.SimpleName;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 
 import java.io.File;
@@ -29,17 +28,17 @@ public class ClassInfo {
     int isAbstract;
     int isFinal;
     int isInterface;
-    List<SimpleName> children;
     List<String> methods;
     List<String> fields;
     List<String> constructors;
-    List<String> overrideMethods;
     List<String> instantiations;
     NodeList<ClassOrInterfaceType> extendedTypes;
     NodeList<ClassOrInterfaceType> implementedTypes;
     ArrayList<String> staticMethods = new ArrayList();
     ArrayList<String> abstractMethods = new ArrayList();
     ArrayList<String> finalMethods = new ArrayList<>();
+    ArrayList<String> children = new ArrayList<>();
+    ArrayList<String> overrideMethods = new ArrayList<>();
     ClassOrInterfaceDeclaration classDeclaration;
 
     ClassInfo(File classFile, ClassOrInterfaceDeclaration clDeclaration) throws FileNotFoundException {
@@ -50,11 +49,9 @@ public class ClassInfo {
         packageName = getPackageName(cu);
         classType = getType(classDeclaration);
         classVisibility = getVisibility(classDeclaration);
-        children = getChildren(cu, classDeclaration);
         fields = getFields(classDeclaration);
         constructors = getConstructors(classDeclaration);
         methods = getMethods(classDeclaration);
-        overrideMethods = getOverrideMethods(classDeclaration);
         isStatic = (classDeclaration.isStatic())? 1 : 0;
         isAbstract = (classDeclaration.isAbstract())? 1 : 0;
         isFinal = (classDeclaration.isFinal())? 1 : 0;
@@ -92,11 +89,13 @@ public class ClassInfo {
                         ));
         return info;
     }
+
     private String getPackageName(CompilationUnit cu){
         if(cu.getPackageDeclaration().isEmpty())
             return " ";
         return cu.getPackageDeclaration().get().getNameAsString();
     }
+
     private int getVisibility(ClassOrInterfaceDeclaration classD){
         if(classD.isProtected())
             return 3;
@@ -129,15 +128,34 @@ public class ClassInfo {
         return projectName;
     }
 
-    private List<SimpleName> getChildren(CompilationUnit cu, ClassOrInterfaceDeclaration currentClass){
-        List<SimpleName> childClasses = new ArrayList<>();
-        cu.findAll(ClassOrInterfaceDeclaration.class).forEach(classDeclaration -> {
-            if (classDeclaration.getExtendedTypes().stream()
-                    .anyMatch(ext -> ext.getNameAsString().equals(currentClass.getNameAsString()))) {
-                childClasses.add(classDeclaration.getName());
+    private void addChildren(ClassInfo child){
+        children.add(child.className);
+    }
+
+    public void setChildren(ArrayList<ClassInfo> classesInfo){
+        for(ClassOrInterfaceType parent : extendedTypes){
+            for(ClassInfo clazz : classesInfo){
+                boolean parentClassFound = clazz.className.equals(parent.getName().asString());
+                if(parentClassFound){
+                    setOverrideMethods(clazz);
+                    clazz.addChildren(this);
+                    break;
+                }
             }
-        });
-        return childClasses;
+        }
+    }
+
+    private void setOverrideMethods(ClassInfo clazz){
+        for(String method : methods){
+            String methodName = extractMethodName(method);
+            List<String> parentMethods = clazz.methods;
+            for(String parentMethod : parentMethods){
+                String parentMethodName = extractMethodName(parentMethod);
+                if(methodName.equals(parentMethodName)){
+                    overrideMethods.add(methodName + " parent: " + clazz.className);
+                }
+            }
+        }
     }
 
     private ArrayList<String> getConstructors(ClassOrInterfaceDeclaration classDeclaration){
@@ -192,19 +210,6 @@ public class ClassInfo {
         }
     }
 
-    private List<String> getOverrideMethods(ClassOrInterfaceDeclaration classDeclaration) {
-        List<String> overrideMethods = new ArrayList<>();
-
-        for (MethodDeclaration method : classDeclaration.getMethods()) {
-            if(method.getAnnotationByName("Override").isPresent()){
-                String result = "override method: " + method.getName();
-                result += " -> parent class: " + classDeclaration.getExtendedTypes().toString();
-                overrideMethods.add(result);
-            }
-        }
-        return overrideMethods;
-    }
-
     private List<String> getInstantiations(CompilationUnit cu){
         List<String> insList = new ArrayList<>();
         List<ObjectCreationExpr> instantiations = cu.findAll(ObjectCreationExpr.class);
@@ -228,10 +233,11 @@ public class ClassInfo {
                 if (selectedClassIsNotThisClass) {
                     if (hasDelegationRelationship(selectedClass))
                         delegations.add(selectedClass.className);
-                    else if (hasCompositionAggregation(selectedClass))
-                        compositionAggregation.add(selectedClass.className);
-                    else if (hasAssociationRelationship(selectedClass))
+                    if (hasAssociationRelationship(selectedClass)) {
                         associations.add(selectedClass.className);
+                        if (hasCompositionAggregation(selectedClass))
+                            compositionAggregation.add(selectedClass.className);
+                    }
                 }
 
             } catch (Exception e){}
@@ -258,7 +264,7 @@ public class ClassInfo {
         return false;
     }
 
-    private boolean hasDelegationRelationship(ClassInfo selectedClass){   //////////ba this ya bi this?
+    private boolean hasDelegationRelationship(ClassInfo selectedClass){
         for(String field : fields){
             if(field.contains(selectedClass.className)){
                 for(String method : methods){
