@@ -19,27 +19,33 @@ import java.util.Arrays;
 import java.util.List;
 
 public class ClassInfo {
-    String projectName;
-    String className;
-    String packageName;
-    int classType;
-    int classVisibility;
-    int isStatic;
-    int isAbstract;
-    int isFinal;
-    int isInterface;
-    List<String> methods;
-    List<String> fields;
-    List<String> constructors;
-    List<String> instantiations;
-    NodeList<ClassOrInterfaceType> extendedTypes;
-    NodeList<ClassOrInterfaceType> implementedTypes;
-    ArrayList<String> staticMethods = new ArrayList();
-    ArrayList<String> abstractMethods = new ArrayList();
-    ArrayList<String> finalMethods = new ArrayList<>();
-    ArrayList<String> children = new ArrayList<>();
-    ArrayList<String> overrideMethods = new ArrayList<>();
-    ClassOrInterfaceDeclaration classDeclaration;
+    public static final int CLASS_TYPE_ORDINARY = 1;
+    public static final int CLASS_TYPE_INTERFACE = 2;
+    public static final int CLASS_TYPE_NESTED = 3;
+    public static final int CLASS_VISIBILITY_PUBLIC = 1;
+    public static final int CLASS_VISIBILITY_PROTECTED = 3;
+    public static final int CLASS_VISIBILITY_PRIVATE = 2;
+    private String projectName;
+    private  String className;
+    private String packageName;
+    private int classType;
+    private int classVisibility;
+    private int isStatic;
+    private int isAbstract;
+    private int isFinal;
+    private int isInterface;
+    private List<String> methods;
+    private List<String> fields;
+    private List<String> constructors;
+    private List<String> instantiations;
+    private NodeList<ClassOrInterfaceType> extendedTypes;
+    private NodeList<ClassOrInterfaceType> implementedTypes;
+    private ArrayList<String> staticMethods = new ArrayList();
+    private ArrayList<String> abstractMethods = new ArrayList();
+    private ArrayList<String> finalMethods = new ArrayList<>();
+    private ArrayList<String> children = new ArrayList<>();
+    private ArrayList<String> overrideMethods = new ArrayList<>();
+    private ClassOrInterfaceDeclaration classDeclaration;
 
     ClassInfo(File classFile, ClassOrInterfaceDeclaration clDeclaration) throws FileNotFoundException {
         CompilationUnit cu = StaticJavaParser.parse(classFile);
@@ -98,18 +104,18 @@ public class ClassInfo {
 
     private int getVisibility(ClassOrInterfaceDeclaration classD){
         if(classD.isProtected())
-            return 3;
+            return CLASS_VISIBILITY_PROTECTED;
         else if(classD.isPrivate())
-            return 2;
-        return 1; //is public
+            return CLASS_VISIBILITY_PRIVATE;
+        return CLASS_VISIBILITY_PUBLIC;
     }
 
     private int getType(ClassOrInterfaceDeclaration classD){
         if (classD.isInterface())
-            return 2;
+            return CLASS_TYPE_INTERFACE;
         else if(classD.isNestedType())
-            return 3;
-        return 1; //is ordinary
+            return CLASS_TYPE_NESTED;
+        return CLASS_TYPE_ORDINARY;
     }
 
     private String getProjectName(File classFile){

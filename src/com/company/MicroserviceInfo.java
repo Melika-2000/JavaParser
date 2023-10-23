@@ -8,11 +8,11 @@ import java.util.Arrays;
 import java.util.List;
 
 public class MicroserviceInfo {
-    String className;
-    List<String> postMethods = new ArrayList<>();
-    List<String> putMethods = new ArrayList<>();
-    List<String> getMethods = new ArrayList<>();
-    List<String> deleteMethods = new ArrayList<>();
+    private String className;
+    private List<String> postMethods = new ArrayList<>();
+    private List<String> putMethods = new ArrayList<>();
+    private List<String> getMethods = new ArrayList<>();
+    private List<String> deleteMethods = new ArrayList<>();
 
     MicroserviceInfo(ClassOrInterfaceDeclaration clDeclaration){
         className = clDeclaration.getNameAsString();
